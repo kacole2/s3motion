@@ -1,0 +1,49 @@
+{
+  "name": "s3motion",
+  "version": "0.1.0",
+  "description": "move & copy objects between s3 instances with CLI and REST",
+  "main": "s3motion.js",
+  "dependencies": {
+    "async": "^0.9.0",
+    "aws-sdk": "^2.1.5",
+    "chalk": "^0.5.1",
+    "commander": "^2.6.0",
+    "optimist": "^0.6.1",
+    "osenv": "^0.1.0",
+    "progress": "^1.1.8",
+    "prompt": "^0.2.14",
+    "s3": "^4.3.1"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/emccode/s3motion.git"
+  },
+  "keywords": [
+    "s3",
+    "amazon",
+    "vipr",
+    "copy",
+    "move",
+    "emccode",
+    "emc",
+    "transfer",
+    "motion",
+    "object",
+    "file"
+  ],
+  "author": "Kendrick Coleman",
+  "license": "Apache 2.0",
+  "preferGlobal": true,
+  "bin": {
+    "s3motion": "s3motion.js"
+  },
+  "readmeFilename": "Readme.md",
+  "bugs": {
+    "url": "https://github.com/emccode/s3motion/issues"
+  },
+  "homepage": "https://github.com/emccode/s3motion"
+}
