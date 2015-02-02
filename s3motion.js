@@ -476,54 +476,62 @@ var copyBucket = function(copyArgs, done) {
 	lister.on('end', function(data) {
 		console.log(chalk.blue(objectCount + ' objects found. Beginning transfer:'));
 
-		async.eachLimit(objectLists, 1, function(objectList, callback){		
+		async.eachSeries(objectLists,
+			function(objectList, callback){		
 
-		  	var copyProcess = function(copyProcessArgs, done) {
-		  		var bar = new ProgressBar('copy: ' + copyProcessArgs.file + ' [:bar :title] ', {
-				    complete: chalk.green('='),
-				    incomplete: ' ',
-				    width: 30,
-				    total: 3
-				});
-		  		async.series([
-					function(done) {				
-						bar.tick({ title: chalk.blue('downloading') });
-						downloadObject({site: copyProcessArgs.sourceSite, bucket: copyProcessArgs.sourceBucket, file: copyProcessArgs.file, folder: __dirname + '/s3motionTransfer/', transfer: true}, function(data){
-							if(data == copyProcessArgs.file + chalk.green.bold(" downloaded")) {
+			  	var copyProcess = function(copyProcessArgs, done) {
+			  		var bar = new ProgressBar('copy: ' + copyProcessArgs.file + ' [:bar :title] ', {
+					    complete: chalk.green('='),
+					    incomplete: ' ',
+					    width: 30,
+					    total: 3
+					});
+			  		async.series([
+						function(done) {				
+							bar.tick({ title: chalk.blue('downloading') });
+							downloadObject({site: copyProcessArgs.sourceSite, bucket: copyProcessArgs.sourceBucket, file: copyProcessArgs.file, folder: __dirname + '/s3motionTransfer/', transfer: true}, function(data){
+								if(data == copyProcessArgs.file + chalk.green.bold(" downloaded")) {
+									done();
+								}
+							});
+						},
+						function(done) {
+							bar.tick({ title: chalk.blue('uploading') });
+							uploadObject({site: copyProcessArgs.destinationSite, bucket: copyProcessArgs.destinationBucket, file: copyProcessArgs.file, folder: __dirname + '/s3motionTransfer/', transfer: true}, function(data){
+								if(data == chalk.green.bold(copyProcessArgs.file + " uploaded")) {
+									done();
+								}
+							});
+						},
+						function(done) {
+							fs.unlink(__dirname + '/s3motionTransfer/' + copyProcessArgs.file, function (err) {
+								if (err) throw err;
+								bar.tick({ title: chalk.cyan('complete') });
 								done();
-							}
-						});
-					},
-					function(done) {
-						bar.tick({ title: chalk.blue('uploading') });
-						uploadObject({site: copyProcessArgs.destinationSite, bucket: copyProcessArgs.destinationBucket, file: copyProcessArgs.file, folder: __dirname + '/s3motionTransfer/', transfer: true}, function(data){
-							if(data == chalk.green.bold(copyProcessArgs.file + " uploaded")) {
-								done();
-							}
-						});
-					},
-					function(done) {
-						fs.unlink(__dirname + '/s3motionTransfer/' + copyProcessArgs.file, function (err) {
-							if (err) throw err;
-							bar.tick({ title: chalk.cyan('complete') });
-							done();
-						});
-					}
-				], 
-				function(err, results){
-					if (err) {
-						done(chalk.red.bold('error occured with ' + copyProcessArgs.file + ': ') + chalk.yellow(err));
-					} 
-					done(copyProcessArgs.file + chalk.green('successfully copied'));
-				});
-			}
+							});
+						}
+					], 
+					function(err, results){
+						if (err) {
+							done(chalk.red.bold('error occured with ' + copyProcessArgs.file + ': ') + chalk.yellow(err));
+						} 
+						done(copyProcessArgs.file + chalk.green('successfully copied'));
+					});
+				}
 
-			async.eachLimit(objectList, 10, function(object, callback){
-	    		copyProcess({sourceSite: copyArgs.sourceSite, sourceBucket: copyArgs.sourceBucket, file: object['Key'], destinationSite: copyArgs.destinationSite, destinationBucket: copyArgs.destinationBucket}, function(data){
-	    			done(console.log(data));
-	    		});
-	    		callback();
-			});
+			async.eachLimit(objectList, 10, 
+				function(object, callback){
+		    		copyProcess({sourceSite: copyArgs.sourceSite, sourceBucket: copyArgs.sourceBucket, file: object['Key'], destinationSite: copyArgs.destinationSite, destinationBucket: copyArgs.destinationBucket}, function(data){
+		    			done(console.log(data));
+		    		});
+		    		callback();
+				}, function(err){
+
+				}
+			);
+			callback();
+		}, function(err){
+
 		});
 	});
 }
@@ -533,15 +541,15 @@ var copyBucket = function(copyArgs, done) {
 program
 	.version('0.1.0')
 	.usage('-flag <Args> Supply only 1 flag. Args will vary based on flag. To use the wizard, type the flag and "wizard" (ie. s3motion -n wizard)')
-	.option('-n, --newClient <--name --accessKeyId --secretAccessKey --endpoint>', 'Add a New Client (will be stored in clients.json). Endpoint is optional')
+	.option('-n, --newClient <--name --accessKeyId --secretAccessKey --endpoint>', 'Add a New Client (will be stored in clients.json)')
 	.option('-L, --listClients', 'List clients')
 	.option('-b, --listBuckets <--client>', 'List buckets for a specific client')
 	.option('-N, --newBucket <--client --name>', 'Create a new bucket')
 	.option('-l, --listObjects <--client --bucket>', 'List objects in a bucket')
-	.option('-d, --downloadObject <--client --bucket --file --folder>', 'Download object(s) from bucket. Multiple file download supported by using commas and no spaces. Folder is optional')
-	.option('-u, --uploadObject <--client --bucket --file --folder>', 'Upload object(s) to bucket. Multiple file upload supported by using commas and no spaces. Folder is optional')
+	.option('-d, --downloadObject <--client --bucket --file --folder>', 'Download object(s) from bucket. Multiple file download supported by using commas and no spaces.')
+	.option('-u, --uploadObject <--client --bucket --file --folder>', 'Upload object(s) to bucket. Multiple file upload supported by using commas and no spaces.')
 	.option('-D, --deleteObject <--client --bucket --file>', 'Delete object(s) from bucket. Multiple deletion supported by using commas and no spaces.')
-	.option('-c, --copyObject <--sourceClient --sourceBucket --file --destClient --destBucket --delete>', 'Copy object(s) between buckets. If --delete is Y, then source file is deleted after copy')
+	.option('-c, --copyObject <--sourceClient --sourceBucket --file --destClient --destBucket --delete>', 'Copy object(s) between buckets. If --delete is Y, then source file is deleted after copy.')
 	.option('-C, --copyBucket <--sourceClient --sourceBucket --destClient --destBucket', 'Copy objects between buckets')
 	.parse(process.argv);
 
