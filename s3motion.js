@@ -176,7 +176,7 @@ var listObjects = function(listArgs, done) {
 
 // @description Download an object or set of objects from a bucket for a client
 // @object downloadArgs Paramters passed from outside functions. 
-// @return JSON object
+// @return 
 var downloadObject = function(downloadArgs, done) {
 	var folder; //set the folder variable and run if/else if folder is not passed as a param to set a default.
 	if(typeof downloadArgs.folder === 'undefined'){
@@ -233,7 +233,7 @@ var downloadObject = function(downloadArgs, done) {
 
 // @description Upload an object or set of objects from a local location for a client
 // @object uploadArgs Paramters passed from outside functions. 
-// @return JSON object
+// @return 
 var uploadObject = function(uploadArgs, done) {
 	var folder; //set the folder variable and run if/else if folder is not passed as a param to set a default.
 	if(typeof uploadArgs.folder === 'undefined'){
@@ -298,7 +298,7 @@ var uploadObject = function(uploadArgs, done) {
 
 // @description Copy an object or set of objects from an S3 bucket to another bucket and between clients
 // @object copyArgs Paramters passed from outside functions. 
-// @return JSON object
+// @return 
 var copyObject = function(copyArgs, done) {
 	var copyProcess = function(copyProcessArgs, done) {
 		//create a progress bar to show the copy process

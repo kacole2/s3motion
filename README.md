@@ -19,42 +19,42 @@ To install it as a command line utility locally: `npm install s3motion -g`
 ## CLI Usage
 All commands are accessible via the `-h` or `--help` flag. Only one flag can be used during a single command. There are two modes to run the CLI utility. You can choose to pass all arguments through a single command, or run the wizard. To run the wizard simply type `wiz` or `wizard` after your chosen flag (ie `s3motion -n wizard`).
 
-- `s3motion -n` or `s3motion --newClient`: Add a new client to a locally stored s3motionClients.json file. The clients are used as a way to store credential information locally and pipe those in for operational use. The s3motionClients.json will be stores in the current users working home directory. Here are the following arguments that can be passed for a single line command:
+- `-n` or `--newClient`: Add a new client to a locally stored s3motionClients.json file. The clients are used as a way to store credential information locally and pipe those in for operational use. The s3motionClients.json will be stores in the current users working home directory. Here are the following arguments that can be passed for a single line command:
 	- `--name`: This is an arbitrary name you are using to identify your client. This name must be unique and cannot be the same as one previously used. If you want to use a previously configured name, edit the s3motionClients.json file. This is a required argument.
 	- `--accessKeyId`: This is the S3 Access Key/ID. This is a required argument.
 	- `--secretAccessKey`: This is the S3 Secret Access Key. This is a required argument.
 	- `--endpoint`: Only specify this if you are trying to access third-party S3 compatible storage. If you are adding a new client for AWS, leave this blank. The endpoint assumes `https` and port `443`, therefore, a DNS or IP address will work such as `vipr.emc.com`. If your storage uses unsecured access, then you must specify the protocol and port such as `http://vipr.emc.com:80`. If you're endpoint uses a different port that can be specified as `vipr.emc.com:10101` which assumes `https`.
-- `s3motion -L` or `s3motion --listClients`: List all the clients available in the s3motionClients.json file. No arguments needed for this command.
-- `s3motion -b` or `s3motion --listBuckets`: List all the avialable buckets for a specific client. Here are the following arguments that can be passed for a single line command:
+- `-L` or `--listClients`: List all the clients available in the s3motionClients.json file. No arguments needed for this command.
+- `-b` or `--listBuckets`: List all the avialable buckets for a specific client. Here are the following arguments that can be passed for a single line command:
 	- `--client`: Specify the name of the locally configued client. This is a required argument.
-- `s3motion -N` or `s3motion --newBucket`: Create a new bucket for a client. Here are the following arguments that can be passed for a single line command:
+- `-N` or `--newBucket`: Create a new bucket for a client. Here are the following arguments that can be passed for a single line command:
 	- `--client`: Specify the name of the locally configued client. This is a required argument.
 	- `--name`: Specify the name of the new bucket. This is a required argument.
-- `s3motion -l` or `s3motion --listObjects`: List all the objects in a bucket. Here are the following arguments that can be passed for a single line command:
+- `-l` or `--listObjects`: List all the objects in a bucket. Here are the following arguments that can be passed for a single line command:
 	- `--client`: Specify the name of the locally configued client. This is a required argument.
 	- `--bucket`: Specify the name of the bucket. This is a required argument.
-- `s3motion -d` or `s3motion --downloadObject`: Download an object(s) from a bucket. Here are the following arguments that can be passed for a single line command:
+- `-d` or `--downloadObject`: Download an object(s) from a bucket. Here are the following arguments that can be passed for a single line command:
 	- `--client`: Specify the name of the locally configued client. This is a required argument.
 	- `--bucket`: Specify the name of the bucket. This is a required argument.
 	- `--file`: Specify the name of the file. If the file is nested within a folder, specify the directory listing as well: `images/myimages/avatar.png`. You can also specify multiple files to download by using a comma and no spaces such as `file1.png,file2.png,images/myimages/avatar.png`. This is a required argument.
 	- `--folder`: Specify the location on your local machine where the file(s) will be download to. `/Users/me/Desktop`. If no folder is specified, then the file is downloaded to the current working directory. This is an optional argument.
-- `s3motion -u` or `s3motion --uploadObject`: Upload an object(s) to a bucket. Here are the following arguments that can be passed for a single line command:
+- `-u` or `--uploadObject`: Upload an object(s) to a bucket. Here are the following arguments that can be passed for a single line command:
 	- `--client`: Specify the name of the locally configued client. This is a required argument.
 	- `--bucket`: Specify the name of the bucket. This is a required argument.
 	- `--file`: Specify the name of the file. By default, uploaded files will be placed in the root directory. This is a required argument.
 	- `--folder`: Specify the location on your local machine where the file(s) will be uploaded from. `/Users/me/Desktop`. If no folder is specified, then the file is downloaded to the current working directory. This is an optional argument.
-- `s3motion -D` or `s3motion --deleteObject`: Delete an object(s) from a bucket. Here are the following arguments that can be passed for a single line command:
+- `-D` or `--deleteObject`: Delete an object(s) from a bucket. Here are the following arguments that can be passed for a single line command:
 	- `--client`: Specify the name of the locally configued client. This is a required argument.
 	- `--bucket`: Specify the name of the bucket. This is a required argument.
 	- `--file`: Specify the name of the file. If the file is nested within a folder, specify the directory listing as well: `images/myimages/avatar.png`. You can also specify multiple files to delete by using a comma and no spaces such as `file1.png,file2.png,images/myimages/avatar.png`. This is a required argument.
-- `s3motion -c` or `s3motion --copyObject`: Copy an object(s) from one client to another. Here are the following arguments that can be passed for a single line command:
+- `-c` or `--copyObject`: Copy an object(s) from one client to another. Here are the following arguments that can be passed for a single line command:
 	- `--sourceClient`: Specify the name of the locally configued client where the object is stored. This is a required argument.
 	- `--sourceBucket`: Specify the name of the bucket where the object is stored. This is a required argument.
 	- `--file`: Specify the name of the file. If the file is nested within a folder, specify the directory listing as well: `images/myimages/avatar.png`. You can also specify multiple files to copy by using a comma and no spaces such as `file1.png,file2.png,images/myimages/avatar.png`. This is a required argument.
 	- `--destClient`: Specify the name of the locally configued client where the object will be copied to. This is a required argument.
 	- `--destBucket`: Specify the name of the bucket where the object will be copied to. This is a required argument.
 	- `--delete`: Default is `n` which means the source copy will remain in the bucket. Specify `Y` if the source file should be deleted upon a successful transfer.
-- `s3motion -C` or `s3motion --copyBucket`: Bulk copy process for all object from one bucket to another. Here are the following arguments that can be passed for a single line command:
+- `-C` or `--copyBucket`: Bulk copy process for all object from one bucket to another. Here are the following arguments that can be passed for a single line command:
 	- `--sourceClient`: Specify the name of the locally configued client where the object is stored. This is a required argument.
 	- `--sourceBucket`: Specify the name of the bucket where the object is stored. This is a required argument.
 	- `--destClient`: Specify the name of the locally configued client where the object will be copied to. This is a required argument.
