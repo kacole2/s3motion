@@ -6,6 +6,7 @@
   "dependencies": {
     "async": "^0.9.0",
     "aws-sdk": "^2.1.5",
+    "body-parser": "^1.11.0",
     "chalk": "^0.5.1",
     "commander": "^2.6.0",
     "optimist": "^0.6.1",
@@ -35,7 +36,7 @@
     "object",
     "file",
     "riakcs",
-    "ceph",
+    "ceph"
   ],
   "author": "Kendrick Coleman",
   "license": "Apache 2.0",
