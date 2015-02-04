@@ -1,7 +1,7 @@
 {
   "name": "s3motion",
-  "version": "0.0.1",
-  "description": "move & copy objects between s3 instances with CLI and REST",
+  "version": "0.0.2",
+  "description": "copy & move objects between s3 instances with CLI and REST",
   "main": "s3motion.js",
   "dependencies": {
     "async": "^0.9.0",
@@ -37,7 +37,8 @@
     "object",
     "file",
     "riakcs",
-    "ceph"
+    "ceph", 
+    "rest"
   ],
   "author": "Kendrick Coleman",
   "license": "Apache 2.0",
