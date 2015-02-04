@@ -164,7 +164,8 @@ var listObjects = function(listArgs, done) {
 	};
 	var lister = listArgs.site.listObjects(params); //specify site, passed as a listArgs param, to list bucket items
 	lister.on('error', function(err) {
-		console.error(chalk.red("unable to list: " + chalk.red.bold(listArgs.bucket) + ""), chalk.yellow(err.stack));
+		done("unable to list " + listArgs.bucket + " : " + err.stack);
+		//console.error(chalk.red("unable to list: " + chalk.red.bold(listArgs.bucket) + ""), chalk.yellow(err.stack));
 	});
 	lister.on('data', function(data) { //keep streaming data as its discovered
 		done(data);
@@ -205,13 +206,14 @@ var downloadObject = function(downloadArgs, done) {
 		});
 		downloader.on('progress', function() {
 			//if statement to run if this is called from a user function and not a predefined one
-			done([downloader.progressAmount, downloader.progressTotal]);
+			done([downloadArgs.folder + downloadArgs.file, downloader.progressAmount, downloader.progressTotal]);
 			if(typeof downloadArgs.transfer === undefined){
-				console.log(downloadArgs.file + chalk.green(" Progress:"), chalk.cyan(downloader.progressAmount, downloader.progressTotal));
+				//console.log(downloadArgs.file + chalk.green(" Progress:"), chalk.cyan(downloader.progressAmount, downloader.progressTotal));
 			};
 		});
 		downloader.on('end', function() {
 			done(downloadArgs.file + chalk.green.bold(" downloaded"));
+			//done();
 		});
 		
 	}
@@ -220,6 +222,7 @@ var downloadObject = function(downloadArgs, done) {
 		async.eachLimit(downloadArgs.file, 10, function(file, callback){
     		downloadObjectProcess({site: downloadArgs.site, bucket: downloadArgs.bucket, file: file, folder: folder}, function(data){
     			done(data);
+    			callback();
     		});
 		});
 	} else {
@@ -266,7 +269,7 @@ var uploadObject = function(uploadArgs, done) {
 			//if statement to run if this is called from a user function and not a predefined one
 			if (i != 0){
 				if(l == 0){
-					done([uploader.progressAmount, uploader.progressTotal]);
+					done([uploadArgs.folder + uploadArgs.file, uploader.progressAmount, uploader.progressTotal]);
 						if(uploader.progressAmount == uploader.progressTotal){
 							l += 1;
 						}
@@ -280,6 +283,7 @@ var uploadObject = function(uploadArgs, done) {
 		uploader.on('end', function() {
 			//if statement to run if this is called from a user function and not a predefined one
 			done(chalk.green.bold(uploadArgs.file + " uploaded"));
+			//done();
 		});
 	}
 	//if files are passed in as an array, only do 10 at a time until completed
@@ -287,6 +291,7 @@ var uploadObject = function(uploadArgs, done) {
 		async.eachLimit(uploadArgs.file, 10, function(file, callback){
     		uploadObjectProcess({site: uploadArgs.site, bucket: uploadArgs.bucket, file: file, folder: folder}, function(data){
     			done(data);
+    			callback();
     		});
 		});
 	} else {
@@ -346,6 +351,7 @@ var copyObject = function(copyArgs, done) {
 		async.eachLimit(copyArgs.file, 10, function(file, callback){
     		copyProcess({sourceSite: copyArgs.sourceSite, sourceBucket: copyArgs.sourceBucket, file: file, destinationSite: copyArgs.destinationSite, destinationBucket: copyArgs.destinationBucket}, function(data){
     			done();
+    			callback();
     		});
 		});
 	} else {
@@ -445,6 +451,7 @@ var moveObject = function(moveArgs, done) {
 		async.eachLimit(moveArgs.file, 10, function(file, callback){
     		moveProcess({sourceSite: moveArgs.sourceSite, sourceBucket: moveArgs.sourceBucket, file: file, destinationSite: moveArgs.destinationSite, destinationBucket: moveArgs.destinationBucket}, function(data){
     			done();
+    			callback();
     		});
 		});
 	} else {
@@ -478,7 +485,6 @@ var copyBucket = function(copyArgs, done) {
 
 		async.eachSeries(objectLists,
 			function(objectList, callback){		
-
 			  	var copyProcess = function(copyProcessArgs, done) {
 			  		var bar = new ProgressBar('copy: ' + copyProcessArgs.file + ' [:bar :title] ', {
 					    complete: chalk.green('='),
@@ -518,24 +524,140 @@ var copyBucket = function(copyArgs, done) {
 						done(copyProcessArgs.file + chalk.green('successfully copied'));
 					});
 				}
-
 			async.eachLimit(objectList, 10, 
 				function(object, callback){
 		    		copyProcess({sourceSite: copyArgs.sourceSite, sourceBucket: copyArgs.sourceBucket, file: object['Key'], destinationSite: copyArgs.destinationSite, destinationBucket: copyArgs.destinationBucket}, function(data){
-		    			done(console.log(data));
+		    			done();
+		    			callback();
 		    		});
-		    		callback();
 				}, function(err){
 
 				}
 			);
 			callback();
+			done();
 		}, function(err){
 
 		});
 	});
 }
 
+var microservice = function() {
+	// BASE SETUP
+	// =============================================================================
+
+	// call the packages we need
+	var express    = require('express');        // call express
+	var app        = express();                 // define our app using express
+	var bodyParser = require('body-parser');
+
+	// configure app to use bodyParser()
+	// this will let us get the data from a POST
+	app.use(bodyParser.urlencoded({ extended: true }));
+	app.use(bodyParser.json());
+
+	var port = process.env.PORT || 8080;        // set our port
+
+	// ROUTES FOR OUR API
+	// =============================================================================
+	var router = express.Router();              // get an instance of the express Router
+
+	// middleware to use for all requests
+	router.use(function(req, res, next) {
+	    // do logging
+	    // console.log('Something is happening.');
+	    next(); // make sure we go to the next routes and don't stop here
+	});
+
+	// test route to make sure everything is working (accessed at GET http://localhost:8080/api)
+	router.get('/', function(req, res) {
+	    res.json({ message: 'hooray! welcome to our api!' });   
+	});
+
+	// more routes for our API will happen here
+	// on routes that end in /bears
+	// ----------------------------------------------------
+	router.route('/clients')
+		.post(function(req, res) { 
+	        var name = req.body.name;  
+	        var accessKeyId = req.body.accessKeyId; 
+	        var secretAccessKey = req.body.secretAccessKey;
+	        var endpoint = req.body.endpoint;
+	        newClient({name: name, accessKeyId: accessKeyId, secretAccessKey: secretAccessKey, endpoint: endpoint}, function(data){
+				console.log(data);
+				if (data == chalk.yellow.bold(name) + chalk.green.bold(" client created")){
+					res.json({ message: name + ' client created' });
+				} else if (data == chalk.yellow.bold(name) + chalk.red(" already exists. Please use a different name or edit the 's3motionClients.json' file")){
+					res.json({ message: name + ' failed. ' + name + ' exists in s3motionClients.json' });
+				}
+			});
+	    })
+	    .get(function(req, res) {
+	        listClients(function(data){
+	            res.json(data);
+			});
+	    });
+
+	router.route('/buckets/:client')
+		.post(function(req, res) { 
+	        var name = req.body.name;
+	        getClient({name: req.params.client, client: 'aws'}, function(client){
+				if (client == '') {
+					res.json({ message: client + ' not found in s3motionClients.json. Create it using /clients' });
+				} else {
+					newBucket({site: client, bucket: name}, function(data) {
+						res.json(data);
+					});
+				}
+			});
+	    })
+		.get(function(req, res) { 
+	        getClient({name: req.params.client, client: 'aws'}, function(client){
+				if (client == '') {
+					res.json({ message: client + ' not found in s3motionClients.json. Create it using /clients' });
+				} else {
+					listBuckets({site: client}, function(data) {
+						res.json(data);
+					});
+				}
+			});
+	    });
+
+	/*router.route('/objects/:client/:bucket')
+		.post(function(req, res) { 
+	        var name = req.body.name;
+	        getClient({name: req.params.client, client: 'aws'}, function(client){
+				if (client == '') {
+					res.json({ message: client + ' not found in s3motionClients.json. Create it using /clients' });
+				} else {
+					newBucket({site: client, bucket: name}, function(data) {
+						res.json(data);
+					});
+				}
+			});
+	    })
+		.get(function(req, res) { 
+			getClient({name: req.params.client, client: 's3'}, function(client){
+				if (client == '') {
+					res.json({ message: client + ' not found in s3motionClients.json. Create it using /clients' });
+				} else {
+					listObjects({site: client, bucket: req.params.bucket}, function(data) {
+						res.json(data);
+					});
+				}
+			});
+	    });
+	    */
+	// REGISTER OUR ROUTES -------------------------------
+	// all of our routes will be prefixed with /api
+	app.use('/api', router);
+
+	// START THE SERVER
+	// =============================================================================
+	app.listen(port);
+	console.log('Microservice started on port ' + port);
+
+}
 
 //commander for command line tools
 program
@@ -550,7 +672,8 @@ program
 	.option('-u, --uploadObject <--client --bucket --file --folder>', 'Upload object(s) to bucket. Multiple file upload supported by using commas and no spaces.')
 	.option('-D, --deleteObject <--client --bucket --file>', 'Delete object(s) from bucket. Multiple deletion supported by using commas and no spaces.')
 	.option('-c, --copyObject <--sourceClient --sourceBucket --file --destClient --destBucket --delete>', 'Copy object(s) between buckets. If --delete is Y, then source file is deleted after copy.')
-	.option('-C, --copyBucket <--sourceClient --sourceBucket --destClient --destBucket', 'Copy objects between buckets')
+	.option('-C, --copyBucket <--sourceClient --sourceBucket --destClient --destBucket>', 'Copy objects between buckets')
+	.option('-R, --REST', 'Starts the REST based Web Service on port 8080')
 	.parse(process.argv);
 
 prompt.message = "";
@@ -735,15 +858,15 @@ if (program.downloadObject) {
 				var files = result.file.split(',');
 				downloadObject({site: client, bucket: result.bucket, file: files, folder: result.folder}, function(data) {
 					if (data instanceof Array){
-						var bar = new ProgressBar('downloading [:bar] ' + chalk.cyan(':percent'), {
+						var bar = new ProgressBar('downloading ' + chalk.blue(data[0]) + ' [:bar] ' + chalk.cyan(':percent'), {
 						    complete: chalk.green('='),
 						    incomplete: ' ',
 						    width: 30,
-						    total: data[1]
+						    total: data[2]
 						});
-						bar.tick(data[0]);
+						bar.tick(data[1]);
 					} else {
-						console.log(data);
+						//console.log(data);
 					}
 
 				});
@@ -790,15 +913,15 @@ if (program.uploadObject) {
 				var files = result.file.split(',');
 				uploadObject({site: client, bucket: result.bucket, file: files, folder: result.folder}, function(data) {
 					if (data instanceof Array){
-						var bar = new ProgressBar('uploading [:bar] ' + chalk.cyan('Please wait until upload confirmation message is shown...'), {
+						var bar = new ProgressBar('uploading ' + chalk.blue(data[0]) + ' [:bar] ' + chalk.cyan(':percent'), {
 						    complete: chalk.green('='),
 						    incomplete: ' ',
 						    width: 30,
-						    total: data[1]
+						    total: data[2]
 						});
-						bar.tick(data[0]);
+						bar.tick(data[1]);
 					} else {
-						console.log(data);
+						//console.log(data);
 					}
 				});
 			});
@@ -957,4 +1080,8 @@ if (program.copyBucket) {
 			});	
 		}
 	});
+}
+
+if (program.REST) {
+	microservice();
 }

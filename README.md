@@ -2,8 +2,6 @@ s3motion
 ======================
 s3motion is a command line utility used to upload/download local files and transfer objects between S3 compatible storage.
 
-** DO NOT USE THIS TOOL YET. STILL WIP **
-
 ## Description
 s3motion creates a simple user interface for migrating, copying, uploading, and downloading of files to S3 compatible storage. The uses cases can be: 
 - a command line tool to upload/download files
@@ -13,8 +11,7 @@ s3motion creates a simple user interface for migrating, copying, uploading, and 
 ## Installation
 To install it as a command line utility locally: `npm install s3motion -g`
 
-** NOT AVAILABLE YET **
-** The REST implementation will allow you to run it as a microservice in a docker container that can be called from any application. `docker run emccode/s3motion` **
+**REST and Docker are still WIP** The REST implementation will allow you to run it as a microservice in a docker container that can be called from any application. `docker run emccode/s3motion`
 
 ## CLI Usage
 All commands are accessible via the `-h` or `--help` flag. Only one flag can be used during a single command. There are two modes to run the CLI utility. You can choose to pass all arguments through a single command, or run the wizard. To run the wizard simply type `wiz` or `wizard` after your chosen flag (ie `s3motion -n wizard`).
@@ -60,14 +57,75 @@ All commands are accessible via the `-h` or `--help` flag. Only one flag can be 
 	- `--destClient`: Specify the name of the locally configued client where the object will be copied to. This is a required argument.
 	- `--destBucket`: Specify the name of the bucket where the object will be copied to. This is a required argument.
 
-- **TBD** `s3motion -p` or `s3motion --port`: Start a webservice listening on specific port for REST based commands.
+- `s3motion -R` or `s3motion --REST`: Start a webservice listening on port 8080 for REST based commands.
 
 ## REST Usage
-Still need to build using express.js
+In addition to running this as a command line, it can also accept REST requests. To begin the microservice to accept REST commands use `s3motion -R`. You will see a message that says **Microservice started on port 8080**. All requests must go through /api, for example `http://myserver.mycompany.com/api`. All requests are returned with JSON
+
+The following REST commands are available to you.
+
+- /api/clients
+  - GET: Returns a JSON object with all clients configured in the s3motionClients.json file
+  
+			GET http://127.0.0.1:8080/api/clients
+			Status: 200 OK
+			JSON:
+			{
+			  clients: [3]
+				0:  {
+				  name: "vipronline"
+				  accessKeyId: "*******"
+				  secretAccessKey: "*********"
+				  endpoint: "object.vipronline.com"
+				}-
+				1:  {
+				  name: "aws"
+				  accessKeyId: "*******"
+				  secretAccessKey: "********"
+				}-
+				2:  {}
+			}
+  - POST: Creates a new client in the s3motionClients.json file. Payload requires `name`, `accessKeyId`, and `secretAccessKey` while `endpoint` is optional.
+  
+			POST http://127.0.0.1:8080/api/clients
+			Status: 200 OK
+			JSON:
+			{
+				message: "apitest client created"
+			}
+
+- /api/buckets/:client
+  - GET: Returns a JSON object with all buckets for a client
+  
+			GET http://127.0.0.1:8080/api/buckets/vipronline
+			Status: 200 OK
+			JSON:
+			{
+			Buckets: [2]
+			  0:  {
+				Name: "s3jump"
+				CreationDate: "2015-01-30T16:59:28.026Z"
+			  }
+			  1:  {
+				Name: "s3motion_vipr01"
+				CreationDate: "2015-01-15T18:37:41.182Z"
+			  }
+			Owner: {
+				DisplayName: "user056"
+				ID: "user056"
+			}
+			}
+  - POST: Creates a new bucket for a client. Payload requires `name` for the bucket.
+  
+			POST http://127.0.0.1:8080/api/clients
+			Status: 200 OK
+			JSON:
+			{
+				Location: "/apitest"
+			}
 
 ## Future
-- Fix Multiple Copy Problem.
-- Microservice using Express.js
+- Continue Microservice using Express.js
 - Web front end
 
 ## Contribution
