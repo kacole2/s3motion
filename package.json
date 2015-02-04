@@ -9,6 +9,7 @@
     "body-parser": "^1.11.0",
     "chalk": "^0.5.1",
     "commander": "^2.6.0",
+    "express": "^4.11.2",
     "optimist": "^0.6.1",
     "osenv": "^0.1.0",
     "progress": "^1.1.8",
