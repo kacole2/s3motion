@@ -1,6 +1,6 @@
 {
   "name": "s3motion",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "copy & move objects between s3 instances with CLI and REST",
   "main": "s3motion.js",
   "dependencies": {
