@@ -1,27 +1,27 @@
 s3motion
 ======================
-s3motion is a command line utility used to upload/download local files and transfer objects between S3 compatible storage.
+s3motion is a combination of both a command line utility and REST based microservice used to upload and download local objects and transfer objects between S3 compatible storage.
 
 ## Description
-s3motion creates a simple user interface for migrating, copying, uploading, and downloading of files to S3 compatible storage. The uses cases can be: 
-- a command line tool to upload/download files
-- a move/copy individual files at scheduled intervals between buckets
+s3motion creates a simple CLI user interface or REST based microservice for migrating, copying, uploading, and downloading of objects to S3 compatible storage. The uses cases can be: 
+- a command line tool to upload/download objects
+- a move/copy individual objects at scheduled intervals between buckets
 - migrate between services. copy entire bucket, then change your application to point to new service
 
 ## Installation
-To install it as a command line utility locally: `npm install s3motion -g`
+Make sure node.js and npm is installed first, then install it globally by issuing: `npm install s3motion -g`
 
-**REST and Docker are still WIP** The REST implementation will allow you to run it as a microservice in a docker container that can be called from any application. `docker run emccode/s3motion`
+To run it as a microservice by utilizing the REST implementation, deploy it in a docker container that can be called from any application. `docker run emccode/s3motion`
 
 ## CLI Usage
 All commands are accessible via the `-h` or `--help` flag. Only one flag can be used during a single command. There are two modes to run the CLI utility. You can choose to pass all arguments through a single command, or run the wizard. To run the wizard simply type `wiz` or `wizard` after your chosen flag (ie `s3motion -n wizard`).
 
-- `-n` or `--newClient`: Add a new client to a locally stored s3motionClients.json file. The clients are used as a way to store credential information locally and pipe those in for operational use. The s3motionClients.json will be stores in the current users working home directory. Here are the following arguments that can be passed for a single line command:
-	- `--name`: This is an arbitrary name you are using to identify your client. This name must be unique and cannot be the same as one previously used. If you want to use a previously configured name, edit the s3motionClients.json file. This is a required argument.
+- `-n` or `--newClient`: Add a new client to a locally stored s3motionClients.json object. The clients are used as a way to store credential information locally and pipe those in for operational use. The s3motionClients.json will be stores in the current users working home directory. Here are the following arguments that can be passed for a single line command:
+	- `--name`: This is an arbitrary name you are using to identify your client. This name must be unique and cannot be the same as one previously used. If you want to use a previously configured name, edit the s3motionClients.json object. This is a required argument.
 	- `--accessKeyId`: This is the S3 Access Key/ID. This is a required argument.
 	- `--secretAccessKey`: This is the S3 Secret Access Key. This is a required argument.
 	- `--endpoint`: Only specify this if you are trying to access third-party S3 compatible storage. If you are adding a new client for AWS, leave this blank. The endpoint assumes `https` and port `443`, therefore, a DNS or IP address will work such as `vipr.emc.com`. If your storage uses unsecured access, then you must specify the protocol and port such as `http://vipr.emc.com:80`. If you're endpoint uses a different port that can be specified as `vipr.emc.com:10101` which assumes `https`.
-- `-L` or `--listClients`: List all the clients available in the s3motionClients.json file. No arguments needed for this command.
+- `-L` or `--listClients`: List all the clients available in the s3motionClients.json object. No arguments needed for this command.
 - `-b` or `--listBuckets`: List all the avialable buckets for a specific client. Here are the following arguments that can be passed for a single line command:
 	- `--client`: Specify the name of the locally configued client. This is a required argument.
 - `-N` or `--newBucket`: Create a new bucket for a client. Here are the following arguments that can be passed for a single line command:
@@ -33,24 +33,24 @@ All commands are accessible via the `-h` or `--help` flag. Only one flag can be 
 - `-d` or `--downloadObject`: Download an object(s) from a bucket. Here are the following arguments that can be passed for a single line command:
 	- `--client`: Specify the name of the locally configued client. This is a required argument.
 	- `--bucket`: Specify the name of the bucket. This is a required argument.
-	- `--file`: Specify the name of the file. If the file is nested within a folder, specify the directory listing as well: `images/myimages/avatar.png`. You can also specify multiple files to download by using a comma and no spaces such as `file1.png,file2.png,images/myimages/avatar.png`. This is a required argument.
-	- `--folder`: Specify the location on your local machine where the file(s) will be download to. `/Users/me/Desktop`. If no folder is specified, then the file is downloaded to the current working directory. This is an optional argument.
+	- `--object`: Specify the name of the object. If the object is nested within a folder, specify the directory listing as well: `images/myimages/avatar.png`. You can also specify multiple objects to download by using a comma and no spaces such as `object1.png,object2.png,images/myimages/avatar.png`. This is a required argument.
+	- `--folder`: Specify the location on your local machine where the object(s) will be download to. `/Users/me/Desktop`. If no folder is specified, then the object is downloaded to the current working directory. This is an optional argument.
 - `-u` or `--uploadObject`: Upload an object(s) to a bucket. Here are the following arguments that can be passed for a single line command:
 	- `--client`: Specify the name of the locally configued client. This is a required argument.
 	- `--bucket`: Specify the name of the bucket. This is a required argument.
-	- `--file`: Specify the name of the file. By default, uploaded files will be placed in the root directory. This is a required argument.
-	- `--folder`: Specify the location on your local machine where the file(s) will be uploaded from. `/Users/me/Desktop`. If no folder is specified, then the file is downloaded to the current working directory. This is an optional argument.
+	- `--object`: Specify the name of the object. By default, uploaded objects will be placed in the root directory. This is a required argument.
+	- `--folder`: Specify the location on your local machine where the object(s) will be uploaded from. `/Users/me/Desktop`. If no folder is specified, then the object is downloaded to the current working directory. This is an optional argument.
 - `-D` or `--deleteObject`: Delete an object(s) from a bucket. Here are the following arguments that can be passed for a single line command:
 	- `--client`: Specify the name of the locally configued client. This is a required argument.
 	- `--bucket`: Specify the name of the bucket. This is a required argument.
-	- `--file`: Specify the name of the file. If the file is nested within a folder, specify the directory listing as well: `images/myimages/avatar.png`. You can also specify multiple files to delete by using a comma and no spaces such as `file1.png,file2.png,images/myimages/avatar.png`. This is a required argument.
+	- `--object`: Specify the name of the object. If the object is nested within a folder, specify the directory listing as well: `images/myimages/avatar.png`. You can also specify multiple objects to delete by using a comma and no spaces such as `object1.png,object2.png,images/myimages/avatar.png`. This is a required argument.
 - `-c` or `--copyObject`: Copy an object(s) from one client to another. Here are the following arguments that can be passed for a single line command:
 	- `--sourceClient`: Specify the name of the locally configued client where the object is stored. This is a required argument.
 	- `--sourceBucket`: Specify the name of the bucket where the object is stored. This is a required argument.
-	- `--file`: Specify the name of the file. If the file is nested within a folder, specify the directory listing as well: `images/myimages/avatar.png`. You can also specify multiple files to copy by using a comma and no spaces such as `file1.png,file2.png,images/myimages/avatar.png`. This is a required argument.
+	- `--object`: Specify the name of the object. If the object is nested within a folder, specify the directory listing as well: `images/myimages/avatar.png`. You can also specify multiple objects to copy by using a comma and no spaces such as `object1.png,object2.png,images/myimages/avatar.png`. This is a required argument.
 	- `--destClient`: Specify the name of the locally configued client where the object will be copied to. This is a required argument.
 	- `--destBucket`: Specify the name of the bucket where the object will be copied to. This is a required argument.
-	- `--delete`: Default is `n` which means the source copy will remain in the bucket. Specify `Y` if the source file should be deleted upon a successful transfer.
+	- `--delete`: Default is `n` which means the source copy will remain in the bucket. Specify `Y` if the source object should be deleted upon a successful transfer.
 - `-C` or `--copyBucket`: Bulk copy process for all object from one bucket to another. Here are the following arguments that can be passed for a single line command:
 	- `--sourceClient`: Specify the name of the locally configued client where the object is stored. This is a required argument.
 	- `--sourceBucket`: Specify the name of the bucket where the object is stored. This is a required argument.
@@ -60,12 +60,12 @@ All commands are accessible via the `-h` or `--help` flag. Only one flag can be 
 - `s3motion -R` or `s3motion --REST`: Start a webservice listening on port 8080 for REST based commands.
 
 ## REST Usage
-In addition to running this as a command line, it can also accept REST requests. To begin the microservice to accept REST commands use `s3motion -R`. You will see a message that says **Microservice started on port 8080**. All requests must go through /api, for example `http://myserver.mycompany.com/api`. All requests are returned with JSON
+In addition to running this as a command line, it can also accept REST requests. To begin the microservice to accept REST commands use `s3motion -R`. You will see a message that says **s3motion microservice started on port 8080**. All requests must go through /api, for example `http://myserver.mycompany.com:8080/api`. All requests are returned with JSON. The default port used is always `:8080`.
 
 The following REST commands are available to you.
 
 - /api/clients
-  - GET: Returns a JSON object with all clients configured in the s3motionClients.json file
+  - GET: Returns a JSON object with all clients configured in the s3motionClients.json object
   
 			GET http://127.0.0.1:8080/api/clients
 			Status: 200 OK
@@ -85,7 +85,7 @@ The following REST commands are available to you.
 				}-
 				2:  {}
 			}
-  - POST: Creates a new client in the s3motionClients.json file. Payload requires `name`, `accessKeyId`, and `secretAccessKey` while `endpoint` is optional.
+  - POST: Creates a new client in the s3motionClients.json object. Payload requires `name`, `accessKeyId`, and `secretAccessKey` while `endpoint` is optional.
   
 			POST http://127.0.0.1:8080/api/clients
 			Status: 200 OK
@@ -152,7 +152,7 @@ The following REST commands are available to you.
 			[1]
 			  0:  [4]
 				0:  {
-				  Key: "file1.ics"
+				  Key: "object1.ics"
 				  LastModified: "2015-02-05T15:30:28.846Z"
 				  ETag: ""699e612ef53db0c730ba2b809935509d""
 				  Size: 3391
@@ -163,7 +163,7 @@ The following REST commands are available to you.
 				  }
 				}
 				1:  {
-				  Key: "file2.xlsx"
+				  Key: "object2.xlsx"
 				  LastModified: "2015-02-05T15:30:29.459Z"
 				  ETag: ""fcb4a7c70c7c70df8484f0a44d34b22f""
 				  Size: 26483
@@ -174,7 +174,7 @@ The following REST commands are available to you.
 				  }
 				}
 				2:  {
-				  Key: "file3.xlsx"
+				  Key: "object3.xlsx"
 				  LastModified: "2015-02-05T15:30:28.927Z"
 				  ETag: ""ad6e381175f42a9b2b26f90a068a3823""
 				  Size: 13428
@@ -185,7 +185,7 @@ The following REST commands are available to you.
 				  }
 				}
 				3:  {
-				  Key: "file4.csv"
+				  Key: "object4.csv"
 				  LastModified: "2015-02-05T15:30:28.918Z"
 				  ETag: ""9a058b5b07578848b8d2406ded823d7e""
 				  Size: 7792
@@ -195,14 +195,14 @@ The following REST commands are available to you.
 				    ID: "user056"
 				  }
 				}
-  - POST: Uploads an object to a specific bucket and client. Payload requires `object`. `object` can be in the form of comma seperated values. `folder` is an optional parameter to specify where on the host file system the file is located. By default, uploads will go to the root of the bucket.
+  - POST: Uploads an object to a specific bucket and client. Payload requires `object`. `object` can be in the form of comma seperated values. `folder` is an optional parameter to specify where on the host object system the object is located. By default, uploads will go to the root of the bucket.
   
 			POST http://127.0.0.1:8080/api/objects/vipronline/s3motion_vipr01
 			Status: 200 OK
 			JSON:
 			{
 			  operation: "objectUpload"
-			  objects: "file1.png,file2.jpg"
+			  objects: "object1.png,object2.jpg"
 			  folder: "/home/kcoleman"
 			  client: "vipronline"
 			  bucket: "s3motion_vipr01"
@@ -215,7 +215,7 @@ The following REST commands are available to you.
 			JSON:
 			{
 			  operation: "objectDelete"
-			  objects: "file1.jpg,file2.gif"
+			  objects: "object1.jpg,object2.gif"
 			  client: "vipronline"
 			  bucket: "s3motion_vipr01"
 			  status: "complete"
@@ -229,12 +229,27 @@ The following REST commands are available to you.
 			JSON:
 			{
 		      operation: "objectCopy"
-			  objects: "file1.jpg,file2.gif"
+			  objects: "object1.jpg,object2.gif"
 			  sourceClient: "aws"
 			  sourceBucket: "s3motion01"
 			  destClient: "vipronline"
 			  destBucket: "s3motion01_vipr01"
 			  status: "running"
+			}
+
+- /api/object/download
+  - POST: Downloads an object(s) from one bucket to the host running the microservice. Payload requires `client`, `bucket`, and `object`. `object` can be in the form of comma seperated values. `folder` is an optional value to specify the download location on the host.
+  
+			POST http://127.0.0.1:8080/api/bucket/copy
+			Status: 200 OK
+			JSON:
+			{
+		      operation: "downloadObject"
+			  object: "object.json"
+			  folder: "/home/user"
+			  client: "vipronline"
+			  bucket: "s3motion_vipr01"
+			  status: "complete"
 			}
 
 ## Future
@@ -243,11 +258,13 @@ The following REST commands are available to you.
   - sync buckets between endpoints
   - upload object to a specific folder inside a bucket (just needs another param)
   - error messages for incorrect bucket spelling
+  - bucket copy process don't specify destination Bucket, just copy the name of the source bucket.
+  - bucket copy process needs to copy empty folders or create those entries on the destination bucket.
 - Continue Microservice using Express.js
-- Document the code
 - Clean up the code
-  - break out into multiple files
+  - break out into multiple objects
 - Web front end
+- Create logging functionality
 
 ## Contribution
 - Fork it, merge it
