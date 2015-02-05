@@ -155,8 +155,8 @@ var newBucket = function(newBucketParams, done){
 // @object listArgs Paramters passed from outside functions. 
 // @return JSON object
 var listObjects = function(listArgs, done) {
-	// NEED TO CREATE OBJECT TO PIPE AS DATA COMES IN THEN RETURN ON END
-	// NEED TO TEST with >1000 objects
+	var objectLists = [];
+	var objectCount = 0;
 	var params = {
 		s3Params: {
 	  		Bucket: listArgs.bucket, //bucket name is passed as a parameter
@@ -168,10 +168,13 @@ var listObjects = function(listArgs, done) {
 		//console.error(chalk.red("unable to list: " + chalk.red.bold(listArgs.bucket) + ""), chalk.yellow(err.stack));
 	});
 	lister.on('data', function(data) { //keep streaming data as its discovered
-		done(data);
+		var objects = data['Contents'];
+		objectCount += data['Contents'].length;
+		objectLists.push(objects);
+		console.log(chalk.blue('Gathering list of objects from ' + listArgs.bucket + '...  Discovered ' + objectCount + ' objects so far'));
 	});
 	lister.on('end', function(data) {
-		//done(allobjects);
+		done(objectLists);
 	});
 }
 
@@ -549,12 +552,20 @@ var microservice = function() {
 	// call the packages we need
 	var express    = require('express');        // call express
 	var app        = express();                 // define our app using express
+	var timeout    = require('connect-timeout');//set the timeout because waiting for object lists takes a while!
 	var bodyParser = require('body-parser');
 
 	// configure app to use bodyParser()
 	// this will let us get the data from a POST
 	app.use(bodyParser.urlencoded({ extended: true }));
 	app.use(bodyParser.json());
+
+	app.use(timeout(300000));
+	app.use(haltOnTimedout);
+
+	function haltOnTimedout(req, res, next){
+	  if (!req.timedout) next();
+	}
 
 	var port = process.env.PORT || 8080;        // set our port
 
@@ -579,16 +590,27 @@ var microservice = function() {
 	// ----------------------------------------------------
 	router.route('/clients')
 		.post(function(req, res) { 
-	        var name = req.body.name;  
-	        var accessKeyId = req.body.accessKeyId; 
-	        var secretAccessKey = req.body.secretAccessKey;
-	        var endpoint = req.body.endpoint;
-	        newClient({name: name, accessKeyId: accessKeyId, secretAccessKey: secretAccessKey, endpoint: endpoint}, function(data){
+	        newClient({name: req.body.name, accessKeyId: req.body.accessKeyId, secretAccessKey: req.body.secretAccessKey, endpoint: req.body.endpoint}, function(data){
 				console.log(data);
-				if (data == chalk.yellow.bold(name) + chalk.green.bold(" client created")){
-					res.json({ message: name + ' client created' });
-				} else if (data == chalk.yellow.bold(name) + chalk.red(" already exists. Please use a different name or edit the 's3motionClients.json' file")){
-					res.json({ message: name + ' failed. ' + name + ' exists in s3motionClients.json' });
+				if (data == chalk.yellow.bold(req.body.name) + chalk.green.bold(" client created")){
+					res.json({  
+						operation: 'newClient',
+						client: req.body.name,
+						accessKeyId: req.body.accessKeyId,
+						secretAccessKey: req.body.secretAccessKey,
+						endpoint: req.body.endpoint,
+						status: 'success',
+					});
+				} else if (data == chalk.yellow.bold(req.body.name) + chalk.red(" already exists. Please use a different name or edit the 's3motionClients.json' file")){
+					res.json({  
+						operation: 'newClient',
+						client: req.body.name,
+						accessKeyId: req.body.accessKeyId,
+						secretAccessKey: req.body.secretAccessKey,
+						endpoint: req.body.endpoint,
+						status: 'fail',
+						message: req.body.name + ' already exists in s3motionClients.json'
+					});
 				}
 			});
 	    })
@@ -603,7 +625,13 @@ var microservice = function() {
 	        var name = req.body.name;
 	        getClient({name: req.params.client, client: 'aws'}, function(client){
 				if (client == '') {
-					res.json({ message: client + ' not found in s3motionClients.json. Create it using /clients' });
+					res.status(404)
+						.json({  
+						operation: 'newBucket',
+						client: req.params.client,
+						status: 'fail',
+						message: client + ' not found in s3motionClients.json. Create it using /clients'
+					});
 				} else {
 					newBucket({site: client, bucket: name}, function(data) {
 						res.json(data);
@@ -614,7 +642,13 @@ var microservice = function() {
 		.get(function(req, res) { 
 	        getClient({name: req.params.client, client: 'aws'}, function(client){
 				if (client == '') {
-					res.json({ message: client + ' not found in s3motionClients.json. Create it using /clients' });
+					res.status(404)
+						.json({  
+						operation: 'listBuckets',
+						client: req.params.client,
+						status: 'fail',
+						message: client + ' not found in s3motionClients.json. Create it using /clients'
+					});
 				} else {
 					listBuckets({site: client}, function(data) {
 						res.json(data);
@@ -623,15 +657,83 @@ var microservice = function() {
 			});
 	    });
 
-	/*router.route('/objects/:client/:bucket')
+	router.route('/bucket/copy')
 		.post(function(req, res) { 
-	        var name = req.body.name;
-	        getClient({name: req.params.client, client: 'aws'}, function(client){
+	        getClient({name: req.body.sourceClient, client: 's3'}, function(sclient){
+				if (sclient == '') {
+					res.status(404)
+						.json({  
+						operation: 'bucketCopy',
+						sourceClient: req.body.sourceClient,
+						sourceBucket: req.body.sourceBucket,
+						destClient: req.body.destClient,
+						destBucket: req.body.destBucket,
+						status: 'fail',
+						message: req.body.sourceClient + ' not found in s3motionClients.json. Create it using /clients'
+					});
+				}
+				var sourceClient = sclient;
+				getClient({name: req.body.destClient, client: 's3'}, function(dclient){
+					if (dclient == '') {
+						res.status(404)
+							.json({  
+							operation: 'bucketCopy',
+							sourceClient: req.body.sourceClient,
+							sourceBucket: req.body.sourceBucket,
+							destClient: req.body.destClient,
+							destBucket: req.body.destBucket,
+							status: 'fail',
+							message: req.body.destClient + ' not found in s3motionClients.json. Create it using /clients'
+						});
+					}
+					var destClient = dclient
+					copyBucket({sourceSite: sourceClient, sourceBucket: req.body.sourceBucket, destinationSite: destClient, destinationBucket: req.body.destBucket}, function(data) {
+						
+					});
+					res.json({  
+						operation: 'bucketCopy',
+						sourceClient: req.body.sourceClient,
+						sourceBucket: req.body.sourceBucket,
+						destClient: req.body.destClient,
+						destBucket: req.body.destBucket,
+						status: 'running',
+					});
+				});
+			});
+	    });
+
+	router.route('/objects/:client/:bucket')
+		.post(function(req, res) {
+	        var folder = req.body.folder;
+	        var objects = req.body.object.split(',');
+			var objectsArrayLength = objects.length - 1;
+	        getClient({name: req.params.client, client: 's3'}, function(client){
 				if (client == '') {
-					res.json({ message: client + ' not found in s3motionClients.json. Create it using /clients' });
+					res.status(404)
+						.json({  
+						operation: 'objectUpload',
+						objects: req.body.object,
+						client: req.params.client,
+						bucket: req.params.bucket,
+						status: 'fail',
+						message: req.params.client + ' not found in s3motionClients.json. Create it using /clients'
+					});
 				} else {
-					newBucket({site: client, bucket: name}, function(data) {
-						res.json(data);
+					if(folder == ''){
+						folder = undefined;
+					}
+					uploadObject({site: client, bucket: req.params.bucket, file: objects, folder: folder}, function(data) {
+						if (data instanceof Array){
+							//
+						} else if (data == chalk.green.bold(objects[objectsArrayLength] + " uploaded")) {
+							res.json({  
+								operation: 'objectUpload',
+								objects: req.body.object,
+								client: req.params.client,
+								bucket: req.params.bucket,
+								status: 'complete'
+							});
+						}
 					});
 				}
 			});
@@ -639,15 +741,116 @@ var microservice = function() {
 		.get(function(req, res) { 
 			getClient({name: req.params.client, client: 's3'}, function(client){
 				if (client == '') {
-					res.json({ message: client + ' not found in s3motionClients.json. Create it using /clients' });
+					res.status(404)
+						.json({  
+						operation: 'objectList',
+						client: req.params.client,
+						bucket: req.params.bucket,
+						status: 'fail',
+						message: client + ' not found in s3motionClients.json. Create it using /clients'
+					});
 				} else {
 					listObjects({site: client, bucket: req.params.bucket}, function(data) {
 						res.json(data);
 					});
 				}
 			});
+	    })
+	    .delete(function(req, res) {
+	    	var objects = req.body.object.split(',');
+			getClient({name: req.params.client, client: 's3'}, function(client){
+				if (client == '') {
+					res.status(404)
+						.json({  
+						operation: 'objectDelete',
+						objects: objects.toString(),
+						client: req.params.client,
+						bucket: req.params.bucket,
+						status: 'fail',
+						message: client + ' not found in s3motionClients.json. Create it using /clients'
+					});
+				} else {
+					deleteObject({site: client, bucket: req.params.bucket, file: objects}, function(data) {
+						if (data instanceof Array){
+							//
+						} else {
+							res.json({  
+								operation: 'objectDelete',
+								objects: objects.toString(),
+								client: req.params.client,
+								bucket: req.params.bucket,
+								status: 'complete'
+							});
+						}
+					});
+				}
+			});
 	    });
-	    */
+
+	router.route('/object/copy')
+		.post(function(req, res) { 
+			var operation;
+			if (req.body.delete == 'Y'){
+				operation = 'objectMove';
+			} else {
+				operation = 'objectCopy';
+			}
+			getClient({name: req.body.sourceClient, client: 's3'}, function(sclient){
+				if (sclient == '') {
+					res.status(404)
+						.json({  
+						operation: operation,
+						objects: req.body.object,
+						sourceClient: req.body.sourceClient,
+						sourceBucket: req.body.sourceBucket,
+						destClient: req.body.destClient,
+						destBucket: req.body.destBucket,
+						status: 'fail',
+						message: req.body.sourceClient + ' not found in s3motionClients.json. Create it using /clients'
+					});
+				} else {
+					var sourceClient = sclient;
+					getClient({name: req.body.destClient, client: 's3'}, function(dclient){
+						if (dclient == '') {
+							res.status(404)
+								.json({  
+								operation: operation,
+								objects: req.body.object,
+								sourceClient: req.body.sourceClient,
+								sourceBucket: req.body.sourceBucket,
+								destClient: req.body.destClient,
+								destBucket: req.body.destBucket,
+								status: 'fail',
+								message: req.body.destClient + ' not found in s3motionClients.json. Create it using /clients'
+							});
+						} else {
+							var destClient = dclient
+							var objects = req.body.object.split(',');
+							if (req.body.delete == 'Y'){
+								moveObject({sourceSite: sourceClient, sourceBucket: req.body.sourceBucket, file: objects, destinationSite: destClient, destinationBucket: req.body.destBucket}, function(data) {
+									//console.log(data);
+								});
+							} else {
+								copyObject({sourceSite: sourceClient, sourceBucket: req.body.sourceBucket, file: objects, destinationSite: destClient, destinationBucket: req.body.destBucket}, function(data) {
+									//console.log(data);
+								});
+							}
+							res.json({ 
+								operation: operation,
+								objects: objects.toString(),
+								sourceClient: req.body.sourceClient,
+								sourceBucket: req.body.sourceBucket,
+								destClient: req.body.destClient,
+								destBucket: req.body.destBucket,
+								status: 'running'
+							});
+						}
+					});
+				}
+			});
+	    });
+	    
+	
 	// REGISTER OUR ROUTES -------------------------------
 	// all of our routes will be prefixed with /api
 	app.use('/api', router);
@@ -954,7 +1157,7 @@ if (program.deleteObject) {
 		} else {
 			var files = result.file.split(',');
 			getClient({name: result.client, client: 's3'}, function(client){
-				if (data == '') {
+				if (client == '') {
 					console.log(chalk.yellow(result.client) + chalk.red(" not found in s3motionClients.json. Create it using 's3motion -n wizard'"));
 					process.exit(1);
 				}
