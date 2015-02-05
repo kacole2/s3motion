@@ -11,7 +11,8 @@ prompt = require('prompt'),
 optimist = require('optimist'),
 osenv = require('osenv');
 
-//Functions
+//Functions that make all the magic happen
+//=============================================================
 // @description Returns a client object for the AWS SDK
 // @object awsClientArgs Paramters passed from outside functions. 
 // @string accessKeyId Pipes in the access key for S3 access
@@ -69,7 +70,7 @@ var newClient = function(newClientArgs, done){
 		    	if(clients[i]['name'] == newClientArgs.name) clientExists = true; //if it exists, set error handler to true
 			}
 
-			if(clientExists == true){ //if the error is true kill the process
+			if(clientExists == true){ //if the error is true kill the process and send message to console
 				done(chalk.yellow.bold(newClientArgs.name) + chalk.red(" already exists. Please use a different name or edit the 's3motionClients.json' file"));
 			} else {
 				if(typeof newClientArgs.endpoint === 'undefined'){ //if endpoint is undefined (AWS), remove it from the insertion
@@ -79,7 +80,7 @@ var newClient = function(newClientArgs, done){
 				};
 				fs.writeFile(home + '/s3motionClients.json', content, function (err) { //save the file with the new content
 				  if (err) throw err;
-				  done(chalk.yellow.bold(newClientArgs.name) + chalk.green.bold(" client created"));
+				  done(chalk.yellow.bold(newClientArgs.name) + chalk.green.bold(" client created")); //deliver success message
 				});
 			}
 	}); 
@@ -87,6 +88,7 @@ var newClient = function(newClientArgs, done){
 
 // @description Retrieve client from JSON file and return client
 // @object getClientArgs Paramters passed from outside functions. 
+// @return client object
 var getClient = function(getClientArgs, done){
 	var home = osenv.home(); //get current home directory
 	fs.readFile(home + '/s3motionClients.json', function (err, data) { //read the file into buffer
@@ -106,7 +108,7 @@ var getClient = function(getClientArgs, done){
 	    			}
 	    	}
 		}
-		// if the supplied client isn't found, let the user know.
+		// if the supplied client isn't found, let the user know. Using '' as a return for nothing
 		if(clientExists == false) {
 			done('');
 		}
@@ -119,7 +121,7 @@ var listClients = function(done){
 	var home = osenv.home();
 	fs.readFile(home + '/s3motionClients.json', function (err, data) { //read the file into buffer
 		var clients = JSON.parse(data);
-		done(clients);
+		done(clients); //pass all clients as JSON object back
 	});
 }
 
@@ -626,7 +628,7 @@ var microservice = function() {
 	        getClient({name: req.params.client, client: 'aws'}, function(client){
 				if (client == '') {
 					res.status(404)
-						.json({  
+					.json({  
 						operation: 'newBucket',
 						client: req.params.client,
 						status: 'fail',
@@ -643,7 +645,7 @@ var microservice = function() {
 	        getClient({name: req.params.client, client: 'aws'}, function(client){
 				if (client == '') {
 					res.status(404)
-						.json({  
+					.json({  
 						operation: 'listBuckets',
 						client: req.params.client,
 						status: 'fail',
@@ -662,8 +664,8 @@ var microservice = function() {
 	        getClient({name: req.body.sourceClient, client: 's3'}, function(sclient){
 				if (sclient == '') {
 					res.status(404)
-						.json({  
-						operation: 'bucketCopy',
+					.json({  
+						operation: 'copyBucket',
 						sourceClient: req.body.sourceClient,
 						sourceBucket: req.body.sourceBucket,
 						destClient: req.body.destClient,
@@ -676,8 +678,8 @@ var microservice = function() {
 				getClient({name: req.body.destClient, client: 's3'}, function(dclient){
 					if (dclient == '') {
 						res.status(404)
-							.json({  
-							operation: 'bucketCopy',
+						.json({  
+							operation: 'copyBucket',
 							sourceClient: req.body.sourceClient,
 							sourceBucket: req.body.sourceBucket,
 							destClient: req.body.destClient,
@@ -691,13 +693,13 @@ var microservice = function() {
 						
 					});
 					res.json({  
-						operation: 'bucketCopy',
-						sourceClient: req.body.sourceClient,
-						sourceBucket: req.body.sourceBucket,
-						destClient: req.body.destClient,
-						destBucket: req.body.destBucket,
-						status: 'running',
-					});
+							operation: 'copyBucket',
+							sourceClient: req.body.sourceClient,
+							sourceBucket: req.body.sourceBucket,
+							destClient: req.body.destClient,
+							destBucket: req.body.destBucket,
+							status: 'running',
+						});
 				});
 			});
 	    });
@@ -710,7 +712,7 @@ var microservice = function() {
 	        getClient({name: req.params.client, client: 's3'}, function(client){
 				if (client == '') {
 					res.status(404)
-						.json({  
+					.json({  
 						operation: 'objectUpload',
 						objects: req.body.object,
 						client: req.params.client,
@@ -729,6 +731,7 @@ var microservice = function() {
 							res.json({  
 								operation: 'objectUpload',
 								objects: req.body.object,
+								folder: req.body.folder,
 								client: req.params.client,
 								bucket: req.params.bucket,
 								status: 'complete'
@@ -742,7 +745,7 @@ var microservice = function() {
 			getClient({name: req.params.client, client: 's3'}, function(client){
 				if (client == '') {
 					res.status(404)
-						.json({  
+					.json({  
 						operation: 'objectList',
 						client: req.params.client,
 						bucket: req.params.bucket,

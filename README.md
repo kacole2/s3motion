@@ -91,7 +91,11 @@ The following REST commands are available to you.
 			Status: 200 OK
 			JSON:
 			{
-				message: "apitest client created"
+			  operation: "newClient"
+			  client: "APItest"
+			  accessKeyId: "gniowrngosejbrjs90u390289r342nv"
+			  secretAccessKey: "fwefew7&^7@(*fec9#**vcuovcuyvwu"
+			  status: "success"
 			}
 
 - /api/buckets/:client
@@ -124,8 +128,125 @@ The following REST commands are available to you.
 				Location: "/apitest"
 			}
 
+- /api/bucket/copy
+  - POST: Copies one bucket to an another in its entirety. Payload requires `sourceClient`, `sourceBucket`, `destClient`, and `destBucket`. You will never get a "success" status message as a response because depending on the amount of objects that must be copied over could take a while and the browser will timeout.
+  
+			POST http://127.0.0.1:8080/api/bucket/copy
+			Status: 200 OK
+			JSON:
+			{
+				operation: "copyBucket"
+				sourceClient: "aws"
+				sourceBucket: "s3motion01"
+				destClient: "vipronline"
+				destBucket: "s3motion_vipr01"
+				status: "running"
+			}
+
+- /api/objects/:client/:bucket
+  - GET: Returns a JSON object with all objects in a bucket. Depending on the amount of objects, the browser may timeout. The timeout is currently set to 4 minutes for Express.js, but most browsers will timeout after 2 minutes. You will need a browser with a configurable timeout to wait for the objects to be collected. Anything greater than >100,000 objects will more than likely timeout after 2 minutes.
+  
+			GET http://127.0.0.1:8080/api/objects/vipronline/s3motion_vipr01
+			Status: 200 OK
+			JSON:
+			[1]
+			  0:  [4]
+				0:  {
+				  Key: "file1.ics"
+				  LastModified: "2015-02-05T15:30:28.846Z"
+				  ETag: ""699e612ef53db0c730ba2b809935509d""
+				  Size: 3391
+				  StorageClass: "STANDARD"
+				  Owner: {
+				    DisplayName: "user056"
+				    ID: "user056"
+				  }
+				}
+				1:  {
+				  Key: "file2.xlsx"
+				  LastModified: "2015-02-05T15:30:29.459Z"
+				  ETag: ""fcb4a7c70c7c70df8484f0a44d34b22f""
+				  Size: 26483
+				  StorageClass: "STANDARD"
+				  Owner: {
+				    DisplayName: "user056"
+				    ID: "user056"
+				  }
+				}
+				2:  {
+				  Key: "file3.xlsx"
+				  LastModified: "2015-02-05T15:30:28.927Z"
+				  ETag: ""ad6e381175f42a9b2b26f90a068a3823""
+				  Size: 13428
+				  StorageClass: "STANDARD"
+				  Owner: {
+				    DisplayName: "user056"
+				    ID: "user056"
+				  }
+				}
+				3:  {
+				  Key: "file4.csv"
+				  LastModified: "2015-02-05T15:30:28.918Z"
+				  ETag: ""9a058b5b07578848b8d2406ded823d7e""
+				  Size: 7792
+				  StorageClass: "STANDARD"
+				  Owner: {
+				    DisplayName: "user056"
+				    ID: "user056"
+				  }
+				}
+  - POST: Uploads an object to a specific bucket and client. Payload requires `object`. `object` can be in the form of comma seperated values. `folder` is an optional parameter to specify where on the host file system the file is located. By default, uploads will go to the root of the bucket.
+  
+			POST http://127.0.0.1:8080/api/objects/vipronline/s3motion_vipr01
+			Status: 200 OK
+			JSON:
+			{
+			  operation: "objectUpload"
+			  objects: "file1.png,file2.jpg"
+			  folder: "/home/kcoleman"
+			  client: "vipronline"
+			  bucket: "s3motion_vipr01"
+			  status: "complete"
+			}
+  - DELETE: Deletes an object(s) in a specific bucket and client. Payload requires `object`. `object` can be in the form of comma seperated values.
+  
+			DELETE http://127.0.0.1:8080/api/objects/vipronline/s3motion_vipr01
+			Status: 200 OK
+			JSON:
+			{
+			  operation: "objectDelete"
+			  objects: "file1.jpg,file2.gif"
+			  client: "vipronline"
+			  bucket: "s3motion_vipr01"
+			  status: "complete"
+			}
+
+- /api/object/copy
+  - POST: Copies an object(s) from one bucket to another. Payload requires `sourceClient`, `sourceBucket`, `destClient`, `destBucket`, and `object`. `object` can be in the form of comma seperated values. You will never get a "success" status message as a response because depending on the amount of objects that must be copied over could take a while and the browser will timeout.
+  
+			POST http://127.0.0.1:8080/api/bucket/copy
+			Status: 200 OK
+			JSON:
+			{
+		      operation: "objectCopy"
+			  objects: "file1.jpg,file2.gif"
+			  sourceClient: "aws"
+			  sourceBucket: "s3motion01"
+			  destClient: "vipronline"
+			  destBucket: "s3motion01_vipr01"
+			  status: "running"
+			}
+
 ## Future
+- Add these functions depending on necessity
+  - delete bucket including all objects (scary)
+  - sync buckets between endpoints
+  - upload object to a specific folder inside a bucket (just needs another param)
+  - 
 - Continue Microservice using Express.js
+- Document the code
+- Clean up the code
+  - break out into multiple files
 - Web front end
 
 ## Contribution
