@@ -127,7 +127,7 @@ var listClients = function(done){
 
 // @description List all buckets for a client
 // @object clientArgs Paramters passed from outside functions. 
-// @return JSON object
+// @return JSON object if passed. console error message.
 var listBuckets = function(clientArgs, done){
 	clientArgs.site.listBuckets(function(err, data) {
 	  if (err) {
@@ -140,7 +140,7 @@ var listBuckets = function(clientArgs, done){
 
 // @description Create new bucket for a client
 // @object newBucketParams Paramters passed from outside functions. 
-// @return JSON object
+// @return JSON object if passed. Sting on error message
 var newBucket = function(newBucketParams, done){
 	var params = {
 	  Bucket: newBucketParams.bucket //new bucket name is passed as a parameter
@@ -155,10 +155,10 @@ var newBucket = function(newBucketParams, done){
 
 // @description List objects in a bucket for a client
 // @object listArgs Paramters passed from outside functions. 
-// @return JSON object
+// @return Array
 var listObjects = function(listArgs, done) {
-	var objectLists = [];
-	var objectCount = 0;
+	var objectLists = []; //set the array to hold list of  all Objects
+	var objectCount = 0; //count how many objects are discovered
 	var params = {
 		s3Params: {
 	  		Bucket: listArgs.bucket, //bucket name is passed as a parameter
@@ -170,19 +170,19 @@ var listObjects = function(listArgs, done) {
 		//console.error(chalk.red("unable to list: " + chalk.red.bold(listArgs.bucket) + ""), chalk.yellow(err.stack));
 	});
 	lister.on('data', function(data) { //keep streaming data as its discovered
-		var objects = data['Contents'];
-		objectCount += data['Contents'].length;
-		objectLists.push(objects);
+		var objects = data['Contents']; //drill down one layer in JSON
+		objectCount += data['Contents'].length; //add the discovered amount to the Count
+		objectLists.push(objects); //add this discovered list to the array
 		console.log(chalk.blue('Gathering list of objects from ' + listArgs.bucket + '...  Discovered ' + objectCount + ' objects so far'));
 	});
 	lister.on('end', function(data) {
-		done(objectLists);
+		done(objectLists); //pass the array full of JSON back to the callback
 	});
 }
 
 // @description Download an object or set of objects from a bucket for a client
 // @object downloadArgs Paramters passed from outside functions. 
-// @return 
+// @return Array for progress and String on completion for each object download
 var downloadObject = function(downloadArgs, done) {
 	var folder; //set the folder variable and run if/else if folder is not passed as a param to set a default.
 	if(typeof downloadArgs.folder === 'undefined'){
@@ -198,41 +198,39 @@ var downloadObject = function(downloadArgs, done) {
 
 	var downloadObjectProcess = function(downloadArgs, done){
 		var params = {
-			localFile: downloadArgs.folder + downloadArgs.file, //specify download location and the filename. no otf changes
+			//specify download location and the object name. no name changes are made to the object on the fly
+			localFile: downloadArgs.folder + downloadArgs.object, 
 
 			s3Params: {
 		    	Bucket: downloadArgs.bucket, //specify bucket to download from
-		    	Key: downloadArgs.file, //specify name of file/object to download
+		    	Key: downloadArgs.object, //specify name of object to download
 			},
 		};
 		var downloader = downloadArgs.site.downloadFile(params);
 		downloader.on('error', function(err) {
-			done(chalk.red("Unable to download " + chalk.red.bold(downloadArgs.file) + ". Check bucket name and object name :"), chalk.yellow(err.stack));
+			done(chalk.red("Unable to download " + chalk.red.bold(downloadArgs.object) + ". Check bucket name and object name :"), chalk.yellow(err.stack));
 		});
 		downloader.on('progress', function() {
-			//if statement to run if this is called from a user function and not a predefined one
-			done([downloadArgs.folder + downloadArgs.file, downloader.progressAmount, downloader.progressTotal]);
-			if(typeof downloadArgs.transfer === undefined){
-				//console.log(downloadArgs.file + chalk.green(" Progress:"), chalk.cyan(downloader.progressAmount, downloader.progressTotal));
-			};
+			done([downloadArgs.folder + downloadArgs.object, downloader.progressAmount, downloader.progressTotal]);
 		});
 		downloader.on('end', function() {
-			done(downloadArgs.file + chalk.green.bold(" downloaded"));
-			//done();
+			done(downloadArgs.object + chalk.green.bold(" downloaded"));
 		});
 		
 	}
-	//if files are passed in as an array, only do 10 at a time until completed
-	if (downloadArgs.file instanceof Array){
-		async.eachLimit(downloadArgs.file, 10, function(file, callback){
-    		downloadObjectProcess({site: downloadArgs.site, bucket: downloadArgs.bucket, file: file, folder: folder}, function(data){
-    			done(data);
-    			callback();
+	//Using CLI & REST, all objects are added to this function as an array. This 'if' statement is here in case this becomes
+	//a npm package for inclusion in other projects where objects are not passed in as arrays from the original function
+	//When objects are passed in as an array, only do 10 objects at a time until completed
+	if (downloadArgs.object instanceof Array){
+		async.eachLimit(downloadArgs.object, 10, function(object, callback){
+    		downloadObjectProcess({site: downloadArgs.site, bucket: downloadArgs.bucket, object: object, folder: folder}, function(data){
+    			done(data); //send data to the done callback from the source function
+    			callback(); //send a callback response to the async callback.
     		});
 		});
 	} else {
-		downloadObjectProcess({site: downloadArgs.site, bucket: downloadArgs.bucket, file: downloadArgs.file, folder: folder}, function(data){
-			done(data);
+		downloadObjectProcess({site: downloadArgs.site, bucket: downloadArgs.bucket, object: downloadArgs.object, folder: folder}, function(data){
+			done(data); //send data to the done callback from the source function
 		});
 	}
 	
@@ -241,12 +239,13 @@ var downloadObject = function(downloadArgs, done) {
 
 // @description Upload an object or set of objects from a local location for a client
 // @object uploadArgs Paramters passed from outside functions. 
-// @return 
+// @return Array for progress and String on completion for each object upload
 var uploadObject = function(uploadArgs, done) {
 	var folder; //set the folder variable and run if/else if folder is not passed as a param to set a default.
 	if(typeof uploadArgs.folder === 'undefined'){
 		folder = ''
 	} else {
+		//add the trailing / if not specified in the folder param
 		var lastChar = uploadArgs.folder.substr(uploadArgs.folder.length - 1);
 		if (lastChar == '/') {
 			folder = uploadArgs.folder
@@ -256,51 +255,50 @@ var uploadObject = function(uploadArgs, done) {
 	};
 	var uploadObjectProcess = function(uploadArgs, done){
 		var params = {
-		  localFile: uploadArgs.folder + uploadArgs.file, //specifying upload location
+		  localFile: uploadArgs.folder + uploadArgs.object, //specifying upload location
 
 		  s3Params: {
 		    Bucket: uploadArgs.bucket, //specify bucket name to upload to
-		    Key: uploadArgs.file, //specify what the file will be called, using same file names. no changes
+		    Key: uploadArgs.object, //specify what the object will be called. In our case we are using same names. no changes
 		  },
 		};
 		var uploader = uploadArgs.site.uploadFile(params);
-		var i = 0;
+		var i = 0; //set variables for progress 
 		var l = 0;
 		uploader.on('error', function(err) {
-		  	done(chalk.red("unable to upload " + chalk.red.bold(uploadArgs.file) + ":"), chalk.yellow(err.stack));
+		  	done(chalk.red("unable to upload " + chalk.red.bold(uploadArgs.object) + ":"), chalk.yellow(err.stack));
 		});
 		uploader.on('progress', function() {
-			//console.log('Progress: ' + uploader.progressMd5Amount, uploader.progressAmount, uploader.progressTotal);
-			//if statement to run if this is called from a user function and not a predefined one
+			//if statement to run because of an incorrect amount of callback returns causing errors on the progress bar
+			// once the progressAmount equals the progressTotal then we don't need to send anymore progress data
+			// data is returned as Array
 			if (i != 0){
 				if(l == 0){
-					done([uploadArgs.folder + uploadArgs.file, uploader.progressAmount, uploader.progressTotal]);
+					done([uploadArgs.folder + uploadArgs.object, uploader.progressAmount, uploader.progressTotal]);
 						if(uploader.progressAmount == uploader.progressTotal){
 							l += 1;
 						}
 				}
 			}
 			i += 1;
-			//if(typeof uploadArgs.transfer === undefined){
-			//	console.log(chalk.green(uploadArgs.file + " progress"), chalk.cyan(uploader.progressMd5Amount, uploader.progressAmount, uploader.progressTotal));
-			//};
 		});
 		uploader.on('end', function() {
-			//if statement to run if this is called from a user function and not a predefined one
-			done(chalk.green.bold(uploadArgs.file + " uploaded"));
-			//done();
+			//send success String
+			done(chalk.green.bold(uploadArgs.object + " uploaded"));
 		});
 	}
-	//if files are passed in as an array, only do 10 at a time until completed
-	if (uploadArgs.file instanceof Array){
-		async.eachLimit(uploadArgs.file, 10, function(file, callback){
-    		uploadObjectProcess({site: uploadArgs.site, bucket: uploadArgs.bucket, file: file, folder: folder}, function(data){
-    			done(data);
-    			callback();
+	//Using CLI & REST, all objects are added to this function as an array. This 'if' statement is here in case this becomes
+	//a npm package for inclusion in other projects where objects are not passed in as arrays from the original function
+	//When objects are passed in as an array, only do 10 objects at a time until completed
+	if (uploadArgs.object instanceof Array){
+		async.eachLimit(uploadArgs.object, 10, function(object, callback){
+    		uploadObjectProcess({site: uploadArgs.site, bucket: uploadArgs.bucket, object: object, folder: folder}, function(data){
+    			done(data); //send data to the done callback from the source function
+    			callback(); //send a callback response to the async callback.
     		});
 		});
 	} else {
-		uploadObjectProcess({site: uploadArgs.site, bucket: uploadArgs.bucket, file: uploadArgs.file, folder: folder}, function(data){
+		uploadObjectProcess({site: uploadArgs.site, bucket: uploadArgs.bucket, object: uploadArgs.object, folder: folder}, function(data){
 			done(data);
 		});
 	}
@@ -312,35 +310,35 @@ var uploadObject = function(uploadArgs, done) {
 var copyObject = function(copyArgs, done) {
 	var copyProcess = function(copyProcessArgs, done) {
 		//create a progress bar to show the copy process
-		var bar = new ProgressBar('copy: ' + copyProcessArgs.file + ' [:bar :title] ', {
+		var bar = new ProgressBar('copy: ' + copyProcessArgs.object + ' [:bar :title] ', {
 		    complete: chalk.green('='),
 		    incomplete: ' ',
 		    width: 30,
 		    total: 3
 		});
-		//process goes to download file, upload file, remove from local filesystem. must be sequential.
+		//process goes to download object, upload object, and remove from local filesystem. must be sequential.
 		async.series([
 			function(done) {				
 				bar.tick({ title: chalk.blue('downloading') });
-				downloadObject({site: copyProcessArgs.sourceSite, bucket: copyProcessArgs.sourceBucket, file: copyProcessArgs.file, folder: __dirname + '/s3motionTransfer/', transfer: true}, function(data){
-					if(data == copyProcessArgs.file + chalk.green.bold(" downloaded")) {
-						done();
+				downloadObject({site: copyProcessArgs.sourceSite, bucket: copyProcessArgs.sourceBucket, object: copyProcessArgs.object, folder: __dirname + '/s3motionTransfer/', transfer: true}, function(data){
+					if(data == copyProcessArgs.object + chalk.green.bold(" downloaded")) {
+						done(); //async callback to go to the next
 					}
 				});
 			},
 			function(done) {
 				bar.tick({ title: chalk.blue('uploading') });
-				uploadObject({site: copyProcessArgs.destinationSite, bucket: copyProcessArgs.destinationBucket, file: copyProcessArgs.file, folder: __dirname + '/s3motionTransfer/', transfer: true}, function(data){
-					if(data == chalk.green.bold(copyProcessArgs.file + " uploaded")) {
-						done();
+				uploadObject({site: copyProcessArgs.destinationSite, bucket: copyProcessArgs.destinationBucket, object: copyProcessArgs.object, folder: __dirname + '/s3motionTransfer/', transfer: true}, function(data){
+					if(data == chalk.green.bold(copyProcessArgs.object + " uploaded")) {
+						done(); //async callback to go to the next
 					}
 				});
 			},
 			function(done) {
-				fs.unlink(__dirname + '/s3motionTransfer/' + copyProcessArgs.file, function (err) {
+				fs.unlink(__dirname + '/s3motionTransfer/' + copyProcessArgs.object, function (err) {
 					if (err) throw err;
 					bar.tick({ title: chalk.cyan('complete') });
-					done();
+					done(); //async callback to go to the next
 				});
 			}
 		], 
@@ -348,27 +346,31 @@ var copyObject = function(copyArgs, done) {
 			if (err) {
 				done(chalk.red.bold('error occured: ') + chalk.yellow(err));
 			} 
-			done(copyProcessArgs.file + chalk.green('successfully copied'));
+			done(copyProcessArgs.object + chalk.green('successfully copied'));
 		});
 	}
-
-	if (copyArgs.file instanceof Array){
-		async.eachLimit(copyArgs.file, 10, function(file, callback){
-    		copyProcess({sourceSite: copyArgs.sourceSite, sourceBucket: copyArgs.sourceBucket, file: file, destinationSite: copyArgs.destinationSite, destinationBucket: copyArgs.destinationBucket}, function(data){
-    			done();
-    			callback();
+	//Using CLI & REST, all objects are added to this function as an array. This 'if' statement is here in case this becomes
+	//a npm package for inclusion in other projects where objects are not passed in as arrays from the original function
+	//When objects are passed in as an array, only do 10 objects at a time until completed
+	if (copyArgs.object instanceof Array){
+		async.eachLimit(copyArgs.object, 10, function(object, callback){
+    		copyProcess({sourceSite: copyArgs.sourceSite, sourceBucket: copyArgs.sourceBucket, object: object, destinationSite: copyArgs.destinationSite, destinationBucket: copyArgs.destinationBucket}, function(data){
+    			done(); //send data to the done callback from the source function
+    			callback(); //send a callback response to the async callback.
     		});
 		});
 	} else {
-		copyProcess({sourceSite: copyArgs.sourceSite, sourceBucket: copyArgs.sourceBucket, file: copyArgs.file, destinationSite: copyArgs.destinationSite, destinationBucket: copyArgs.destinationBucket}, function(data){
+		copyProcess({sourceSite: copyArgs.sourceSite, sourceBucket: copyArgs.sourceBucket, object: copyArgs.object, destinationSite: copyArgs.destinationSite, destinationBucket: copyArgs.destinationBucket}, function(data){
 			done();
 		});
 	}
 }
 
+// @description Delete an object or set of objects from an S3 bucket
+// @object copyArgs Paramters passed from outside functions. 
+// @return 
 var deleteObject = function(deleteArgs, done){
 	var filesToDelete = [];
-
 	if (deleteArgs.file instanceof Array){
 		length = deleteArgs.file.length;
 		for (var i = 0; i < length; i++) {

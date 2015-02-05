@@ -242,7 +242,7 @@ The following REST commands are available to you.
   - delete bucket including all objects (scary)
   - sync buckets between endpoints
   - upload object to a specific folder inside a bucket (just needs another param)
-  - 
+  - error messages for incorrect bucket spelling
 - Continue Microservice using Express.js
 - Document the code
 - Clean up the code
