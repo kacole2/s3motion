@@ -31,11 +31,15 @@ var awsClient = function(awsClientArgs){
 // @string endpoint Pipes in an endpoint for 3rd party S3 services
 // @return client object for S3 NPM package
 var s3Client = function(s3ClientArgs) {
-	var s3object = new AWS.S3({accessKeyId: s3ClientArgs.accessKeyId, secretAccessKey: s3ClientArgs.secretAccessKey, endpoint: s3ClientArgs.endpoint});
-	var options = {
-		s3Client: s3object,
-	}
-	var client = s3.createClient(options); //creates new s3 client based on additional params from AWS SDK
+	var client = s3.createClient({
+	  s3Options: {
+	    accessKeyId: s3ClientArgs.accessKeyId,
+	    secretAccessKey: s3ClientArgs.secretAccessKey,
+	    endpoint: s3ClientArgs.endpoint
+	    // any other options are passed to new AWS.S3()
+	    // See: http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/Config.html#constructor-property
+	  },
+	});
 	return client;
 }
 
@@ -318,7 +322,7 @@ var copyObject = function(copyArgs, done) {
 		});
 		//process goes to download object, upload object, and remove from local filesystem. must be sequential.
 		async.series([
-			function(done) {				
+			function(done) {
 				bar.tick({ title: chalk.blue('downloading') });
 				downloadObject({site: copyProcessArgs.sourceSite, bucket: copyProcessArgs.sourceBucket, object: copyProcessArgs.object, folder: __dirname + '/s3motionTransfer/', transfer: true}, function(data){
 					if(data == copyProcessArgs.object + chalk.green.bold(" downloaded")) {
@@ -1196,7 +1200,6 @@ if (program.downloadObject) {
 					} else {
 						//console.log(data);
 					}
-
 				});
 			});
 		}
