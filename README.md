@@ -11,7 +11,7 @@ s3motion creates a simple CLI user interface or REST based microservice for migr
 ## Installation
 Make sure node.js and npm is installed first, then install it globally by issuing: `npm install s3motion -g`
 
-To run it as a microservice by utilizing the REST implementation, deploy it in a docker container that can be called from any application. `docker run emccode/s3motion`
+To run it as a microservice by utilizing the REST implementation, deploy it in a docker container that can be called from any application. `docker run -d -p 8080:8080 emccode/s3motion`. To interact with the container for CLI purposes, you can `docker run -ti --entrypoint=/bin/bash emccode/s3motion`
 
 ## CLI Usage
 All commands are accessible via the `-h` or `--help` flag. Only one flag can be used during a single command. There are two modes to run the CLI utility. You can choose to pass all arguments through a single command, or run the wizard. To run the wizard simply type `wiz` or `wizard` after your chosen flag (ie `s3motion -n wizard`).
