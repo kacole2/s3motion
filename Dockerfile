@@ -21,8 +21,8 @@ RUN npm install s3motion -g
 # Expose the default port 8080
 EXPOSE 8080
 
-# Start the REST service
-CMD ["--REST"]
-
 # Set default container command
 ENTRYPOINT s3motion
+
+# Start the REST service
+CMD ["--REST"]
