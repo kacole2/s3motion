@@ -35,10 +35,13 @@
     "emc",
     "transfer",
     "motion",
+    "migrate",
+    "migration"
     "object",
     "file",
     "riakcs",
     "ceph",
+    "cleversafe",
     "rest"
   ],
   "author": "Kendrick Coleman",

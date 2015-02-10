@@ -252,6 +252,21 @@ The following REST commands are available to you.
 			  status: "complete"
 			}
 
+## Troubleshooting
+When using a 3rd party S3 storage service (not AWS) there are instances when the server returns a header without `content-length` and instead specifies `transfer-encoding: chunked`. 
+```
+{ date: 'Fri, 06 Feb 2015 20:18:09 GMT',
+  server: 'ViPR/1.0',
+  'x-amz-request-id': '0a6c5fc3:14af4ae3238:f7f1:b',
+  'x-amz-id-2': '97e9f1ba70052a7b85e9db09cd13f09454828f6f0a5b92e5f691c07656a7ec10',
+  etag: '"e1f0060d53cbfab7f917642abaa7a1c6"',
+  'last-modified': 'Fri, 06 Feb 2015 16:09:15 GMT',
+  'x-emc-mtime': '1423238955945',
+  'content-type': 'application/zip',
+  'transfer-encoding': 'chunked' }
+```
+This means the download process for a file will not happen because of how the [node-s3-client](https://github.com/andrewrk/node-s3-client) handles it. [Pull-request 76](https://github.com/andrewrk/node-s3-client/pull/76) will fix this behavior. 
+
 ## Future
 - Add these functions depending on necessity
   - delete bucket including all objects (scary)
