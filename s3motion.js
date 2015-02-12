@@ -124,8 +124,12 @@ var getClient = function(getClientArgs, done){
 var listClients = function(done){
 	var home = osenv.home();
 	fs.readFile(home + '/s3motionClients.json', function (err, data) { //read the file into buffer
-		var clients = JSON.parse(data);
-		done(clients); //pass all clients as JSON object back
+		if (err) {
+			done({message : 'Error: cannot open or find s3motionClients.json file in ' + home});
+		} else {
+			var clients = JSON.parse(data);
+			done(clients); //pass all clients as JSON object back
+		}
 	});
 }
 
