@@ -1,6 +1,6 @@
 {
   "name": "s3motion",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "copy & move objects between s3 instances with CLI and REST",
   "main": "s3motion.js",
   "dependencies": {
@@ -23,7 +23,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/emccode/s3motion.git"
+    "url": "https://github.com/kacole2/s3motion.git"
   },
   "keywords": [
     "s3",
@@ -31,7 +31,7 @@
     "vipr",
     "copy",
     "move",
-    "emccode",
+    "kacole2",
     "emc",
     "transfer",
     "motion",
@@ -52,7 +52,7 @@
   },
   "readmeFilename": "Readme.md",
   "bugs": {
-    "url": "https://github.com/emccode/s3motion/issues"
+    "url": "https://github.com/kacole2/s3motion/issues"
   },
-  "homepage": "https://github.com/emccode/s3motion"
+  "homepage": "https://github.com/kacole2/s3motion"
 }
