@@ -20,7 +20,7 @@ osenv = require('osenv');
 // @string endpoint Pipes in an endpoint for 3rd party S3 services
 // @return client object for AWS SDK
 var awsClient = function(awsClientArgs){
-	var client = new AWS.S3({accessKeyId: awsClientArgs.accessKeyId, secretAccessKey: awsClientArgs.secretAccessKey, endpoint: awsClientArgs.endpoint});
+	var client = new AWS.S3({accessKeyId: awsClientArgs.accessKeyId, secretAccessKey: awsClientArgs.secretAccessKey, endpoint: awsClientArgs.endpoint, signatureVersion: 'v4', sslEnabled: true});
 	return client;
 }
 
@@ -35,7 +35,10 @@ var s3Client = function(s3ClientArgs) {
 	  s3Options: {
 	    accessKeyId: s3ClientArgs.accessKeyId,
 	    secretAccessKey: s3ClientArgs.secretAccessKey,
-	    endpoint: s3ClientArgs.endpoint
+			endpoint: s3ClientArgs.endpoint, 
+			signatureVersion: 'v4', 
+			sslEnabled: true, 
+			region: s3ClientArgs.region
 	    // any other options are passed to new AWS.S3()
 	    // See: http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/Config.html#constructor-property
 	  },
@@ -104,10 +107,10 @@ var getClient = function(getClientArgs, done){
 	    	if(clients[i]['name'] == getClientArgs.name) { //find the matching name supplied from the user input
 	    		var clientExists = true; //set error handler to TRUE
 	    			if(getClientArgs.client == 's3'){ //run function depending on type of client needed
-	    				var s3clientReturn = s3Client({accessKeyId: clients[i]['accessKeyId'], secretAccessKey: clients[i]['secretAccessKey'], endpoint: clients[i]['endpoint']});
+	    				var s3clientReturn = s3Client({accessKeyId: clients[i]['accessKeyId'], secretAccessKey: clients[i]['secretAccessKey'], endpoint: clients[i]['endpoint'], region: clients[i]['region'] });
 	    				done(s3clientReturn);
 	    			} else if (getClientArgs.client == 'aws') {
-	    				var awsClientReturn = awsClient({accessKeyId: clients[i]['accessKeyId'], secretAccessKey: clients[i]['secretAccessKey'], endpoint: clients[i]['endpoint']});
+	    				var awsClientReturn = awsClient({accessKeyId: clients[i]['accessKeyId'], secretAccessKey: clients[i]['secretAccessKey'], endpoint: clients[i]['endpoint'], region: clients[i]['region']});
 	    				done(awsClientReturn)	;
 	    			}
 	    	}
@@ -564,7 +567,7 @@ var copyBucket = function(copyArgs, done) {
 			callback(); //send a callback response to the async callback to start the next List
 			done(); //send data to the done callback from the source function
 		}, function(err){
-
+			console.log(err)
 		});
 	});
 }
